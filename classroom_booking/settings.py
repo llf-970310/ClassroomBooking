@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'booking.apps.BookingConfig'
 ]
 
 MIDDLEWARE = [
@@ -76,8 +77,12 @@ WSGI_APPLICATION = 'classroom_booking.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'classroom_booking',
+        'USER': 'root',
+        'PASSWORD': '6EY&%%Fm8x$B',
+        'HOST': '172.19.240.115',
+        'PORT': '3306',
     }
 }
 
@@ -119,3 +124,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.AllowAllUsersModelBackend']
