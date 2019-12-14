@@ -209,7 +209,7 @@ def modify_admin_info_by_id(request):
         new_name = request.POST.get('name')
         new_tel = request.POST.get('tel')
 
-        admin = Administrator.objects.get(id=admin_id)
+        admin = UserInfo.objects.get(id=admin_id)
         admin.name = new_name
         admin.tel = new_tel
         admin.save()
@@ -266,7 +266,7 @@ def modify_classroom_by_id(request):
         classroom_img = request.POST.get('img')
         classroom_state = request.POST.get('state')
 
-        manager = Administrator.objects.get(id=manager_id)
+        manager = UserInfo.objects.get(id=manager_id)
         classroom = Classroom.objects.get(id=classroom_id)
         classroom.name = classroom_name
         classroom.size = classroom_size
