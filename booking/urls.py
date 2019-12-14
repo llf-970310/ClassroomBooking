@@ -20,5 +20,8 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('login', views.user_login, name='login'),
     path('logout', views.user_logout, name='logout'),
-    path('get_classroom_info', views.get_classroom_info, name='get_classroom_info')
+    path('get_classroom_info', views.get_classroom_info, name='get_classroom_info'),
+    path('get_user_booking_list', views.get_user_booking_list, name='get_user_booking_list'),
+    path('del_booking_by_id', views.del_booking_by_id, name='del_booking_by_id'),
+    path('modify_booking_by_id', views.modify_booking_by_id, name='modify_booking_by_id')
 ]
