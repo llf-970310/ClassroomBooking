@@ -25,5 +25,9 @@ urlpatterns = [
     path('del_booking_by_id', views.del_booking_by_id, name='del_booking_by_id'),
     path('modify_booking_by_id', views.modify_booking_by_id, name='modify_booking_by_id'),
     path('get_classroom_booking', views.get_classroom_booking, name='get_classroom_booking'),
-    path('create_booking', views.create_booking, name='create_booking')
+    path('create_booking', views.create_booking, name='create_booking'),
+    path('modify_admin_info_by_id', views.modify_admin_info_by_id, name='modify_admin_info_by_id'),
+    path('get_booking_list', views.get_booking_list, name='get_booking_list'),
+    path('set_booking_status', views.set_booking_status, name='set_booking_status'),
+    path('modify_classroom_by_id', views.modify_classroom_by_id, name='modify_classroom_by_id'),
 ]

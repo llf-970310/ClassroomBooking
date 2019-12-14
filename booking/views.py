@@ -197,3 +197,85 @@ def del_booking_by_id(request):
         result['success'] = False
         result['msg'] = repr(e)
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 修改管理员信息
+@csrf_exempt
+@login_required
+def modify_admin_info_by_id(request):
+    result = {}
+    try:
+        admin_id = request.POST.get('id')
+        new_name = request.POST.get('name')
+        new_tel = request.POST.get('tel')
+
+        admin = Administrator.objects.get(id=admin_id)
+        admin.name = new_name
+        admin.tel = new_tel
+        admin.save()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 获取所有预定信息
+@csrf_exempt
+def get_booking_list(request):
+    result = {}
+    try:
+        booking_list = ClassroomBooking.objects.values(
+            'id', 'classroom_name', 'date', 'start_time', 'end_time', 'state'
+        )
+        result['booking_list'] = list(booking_list)
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 设置预定状态
+@csrf_exempt
+def set_booking_status(request):
+    # todo: 这里status的表达方式还未确定
+    result = {}
+    try:
+        booking_ids = request.POST.get('id')
+        booking_id_list = booking_ids.split(',')
+        booking_status = request.POST.get('status')
+        booking_status_list = booking_status.split(',')
+        for i in range(min(len(booking_id_list), len(booking_status_list))):
+            ClassroomBooking.objects.get(id=booking_id_list[i]).state = booking_status_list[i]
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 更改教室信息
+@csrf_exempt
+def modify_classroom_by_id(request):
+    result = {}
+    try:
+        classroom_id = request.POST.get('classroom_id')
+        manager_id = request.POST.get('manager_id')
+        classroom_name = request.POST.get('name')
+        classroom_size = request.POST.get('size')
+        classroom_img = request.POST.get('img')
+        classroom_state = request.POST.get('state')
+
+        manager = Administrator.objects.get(id=manager_id)
+        classroom = Classroom.objects.get(id=classroom_id)
+        classroom.name = classroom_name
+        classroom.size = classroom_size
+        classroom.img = classroom_img
+        classroom.state = classroom_state
+        classroom.manager = manager
+        classroom.save()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
