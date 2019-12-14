@@ -79,6 +79,29 @@ def get_classroom_info(request):
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 
+# 查看教室预订情况
+@csrf_exempt
+def get_classroom_booking(request):
+    result = {}
+    classroom_id = request.POST.get("id")
+    try:
+        if classroom_id != "":
+            booking_item = ClassroomBooking.objects.filter(classroom_id=classroom_id).values(
+                'id', 'date', 'start_time', 'end_time', 'state', 'classroom__name', 'user__username'
+            )
+            result['booking_list'] = list(booking_item)
+        else:
+            booking_list = ClassroomBooking.objects.all().values(
+                'id', 'date', 'start_time', 'end_time', 'state', 'classroom__name', 'user__username'
+            )
+            result['booking_list'] = list(booking_list)
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
 # 查看当前用户预订列表
 @csrf_exempt
 @login_required
@@ -90,6 +113,41 @@ def get_user_booking_list(request):
         )
         result['booking_list'] = list(booking_list)
         result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 新增预订
+@csrf_exempt
+@login_required
+def create_booking(request):
+    result = {}
+    try:
+        classroom_name = request.POST.get('classroom_name')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+
+        classroom = Classroom.objects.get(name=classroom_name)
+        current_user = request.user
+
+        # 判断是否可以预订
+        tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                               start_time__lte=start_time, end_time__gt=start_time)
+        tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                               start_time__lt=end_time, end_time__gte=end_time)
+        if len(tmp1) != 0 or len(tmp2) != 0:
+            result['success'] = False
+            result['msg'] = "时间冲突，无法预订"
+        else:
+            booking = ClassroomBooking(date=datetime.datetime.strptime(date, '%Y-%m-%d'),
+                                       start_time=datetime.datetime.strptime(start_time, '%H:%M:%S'),
+                                       end_time=datetime.datetime.strptime(end_time, '%H:%M:%S'),
+                                       state=0, classroom=classroom, user=current_user)
+            booking.save()
+            result['success'] = True
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -114,6 +172,7 @@ def modify_booking_by_id(request):
         booking.start_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
         booking.end_time = datetime.datetime.strptime(end_time, '%H:%M:%S')
         booking.classroom = classroom
+        booking.state = 0
         booking.save()
 
         result['success'] = True
@@ -138,6 +197,7 @@ def del_booking_by_id(request):
         result['success'] = False
         result['msg'] = repr(e)
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
 
 # 修改管理员信息
 @csrf_exempt
