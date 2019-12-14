@@ -38,6 +38,7 @@ def user_login(request):
     if user is not None:
         login(request, user)
         result['success'] = True
+        result['user_type'] = UserInfo.objects.get(user_id=user.id).user_type
     else:
         result['success'] = False
     return HttpResponse(json.dumps(result), content_type="application/json")

@@ -4,3 +4,4 @@ from .models import *
 # Register your models here.
 admin.site.register(Classroom)
 admin.site.register(ClassroomBooking)
+admin.site.register(UserInfo)
