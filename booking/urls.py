@@ -23,5 +23,9 @@ urlpatterns = [
     path('get_classroom_info', views.get_classroom_info, name='get_classroom_info'),
     path('get_user_booking_list', views.get_user_booking_list, name='get_user_booking_list'),
     path('del_booking_by_id', views.del_booking_by_id, name='del_booking_by_id'),
-    path('modify_booking_by_id', views.modify_booking_by_id, name='modify_booking_by_id')
+    path('modify_booking_by_id', views.modify_booking_by_id, name='modify_booking_by_id'),
+    path('modify_admin_info_by_id', views.modify_admin_info_by_id, name='modify_admin_info_by_id'),
+    path('get_booking_list', views.get_booking_list, name='get_booking_list'),
+    path('set_booking_list', views.set_booking_status, name='set_booking_list'),
+    path('modify_classroom_by_id', views.modify_classroom_by_id, name='modify_classroom_by_id')
 ]
