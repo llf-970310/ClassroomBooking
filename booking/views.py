@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 
@@ -306,22 +305,21 @@ def user_register(request):
     username = request.POST.get("username")
     password = request.POST.get("password")
     checkpwd = request.POST.get("checkpwd")
+    email = request.POST.get("email")
     name = request.POST.get("name")
     tel = request.POST.get("tel")
     if password != checkpwd:
         result['success'] = False
         result['msg'] = '两次输入密码不一样'
-    elif len(tel) != 11:
-        result['success'] = False
-        result['msg'] = '输入的联系方式无效'
     else:
         if User.objects.filter(username=username).first():
             result['success'] = False
             result['msg'] = "该用户名已存在"
         else:
-            User.objects.create_user(username=username, password=password)
-            user = UserInfo(name=name, tel=tel, user_type=1, user_id=request.user.id)
+            user = User.objects.create_user(username=username, password=password, email=email)
             user.save()
+            userinfo = UserInfo(user=user, name=name, tel=tel, user_type=1)
+            userinfo.save()
             result['success'] = True
     return HttpResponse(json.dumps(result), content_type="application/json")
 
@@ -358,9 +356,13 @@ def modify_personal_info(request):
         current_user = request.user
         name = request.POST.get("name")
         tel = request.POST.get("tel")
-        user = UserInfo.objects.get(user=current_user)
-        user.name = name
-        user.tel = tel
+        email = request.POST.get("email")
+        userinfo = UserInfo.objects.get(user=current_user)
+        userinfo.name = name
+        userinfo.tel = tel
+        userinfo.save()
+        user = User.objects.get(id=userinfo.user_id)
+        user.email = email
         user.save()
         result['success'] = True
     except Exception as e:
