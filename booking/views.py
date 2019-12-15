@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
-
+from itertools import chain
 
 # 解决返回 json 中日期格式序列化的问题
 class DateEncoder(json.JSONEncoder):
@@ -379,6 +379,26 @@ def modify_password(request):
         else:
             result['success'] = False
             result['msg'] = "原密码输入错误"
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+
+# 查看个人信息
+@csrf_exempt
+@login_required
+def get_personal_info(request):
+    result = {}
+    try:
+        current_user = request.user
+        personal_info_list = UserInfo.objects.get(user_id=current_user.id)
+        user = User.objects.get(id=personal_info_list.user_id)
+        result['id'] = personal_info_list.user_id
+        result['name'] = personal_info_list.name
+        result['tel'] = personal_info_list.tel
+        result['email'] = user.email
+        result['success'] = True
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)

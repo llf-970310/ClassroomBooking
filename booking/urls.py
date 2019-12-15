@@ -35,5 +35,6 @@ urlpatterns = [
     path('register', views.user_register, name='register'),
     path('modify_password', views.modify_password, name='modify_password'),
     path('modify_personal_info', views.modify_personal_info, name='modify_personal_info'),
-    path('get_history_booking_list', views.get_history_booking_list, name='get_history_booking_list')
+    path('get_history_booking_list', views.get_history_booking_list, name='get_history_booking_list'),
+    path('get_personal_info', views.get_personal_info, name='get_personal_info')
 ]
