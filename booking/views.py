@@ -208,11 +208,11 @@ def del_booking_by_id(request):
 def modify_admin_info_by_id(request):
     result = {}
     try:
-        admin_id = request.POST.get('id')
+        current_user = request.user
         new_name = request.POST.get('name')
         new_tel = request.POST.get('tel')
 
-        admin = UserInfo.objects.get(id=admin_id)
+        admin = UserInfo.objects.get(user=current_user)
         admin.name = new_name
         admin.tel = new_tel
         admin.save()
@@ -229,27 +229,31 @@ def get_booking_list(request):
     result = {}
     try:
         booking_list = ClassroomBooking.objects.values(
-            'id', 'classroom_name', 'date', 'start_time', 'end_time', 'state'
+            'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
         )
-        result['booking_list'] = list(booking_list)
+        content = list(booking_list)
+        result['booking_list'] = content
+        result['num'] = len(booking_list)
+        result['success'] = True
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
 
 
-# 设置预定状态
+# 设置教室预定状态
 @csrf_exempt
 def set_booking_status(request):
-    # todo: 这里status的表达方式还未确定
     result = {}
     try:
         booking_ids = request.POST.get('id')
         booking_id_list = booking_ids.split(',')
-        booking_status = request.POST.get('status')
+        booking_status = request.POST.get('state')
         booking_status_list = booking_status.split(',')
         for i in range(min(len(booking_id_list), len(booking_status_list))):
-            ClassroomBooking.objects.get(id=booking_id_list[i]).state = booking_status_list[i]
+            booking = ClassroomBooking.objects.get(id=booking_id_list[i])
+            booking.state = int(booking_status_list[i])
+            booking.save()
         result['success'] = True
     except Exception as e:
         result['success'] = False
@@ -262,20 +266,20 @@ def set_booking_status(request):
 def modify_classroom_by_id(request):
     result = {}
     try:
-        classroom_id = request.POST.get('classroom_id')
-        manager_id = request.POST.get('manager_id')
+        classroom_id = request.POST.get('id')
+        manager_name = request.POST.get('manager__username')
         classroom_name = request.POST.get('name')
         classroom_size = request.POST.get('size')
         classroom_img = request.POST.get('img')
         classroom_state = request.POST.get('state')
 
-        manager = UserInfo.objects.get(id=manager_id)
+        manager = UserInfo.objects.get(name=manager_name)
         classroom = Classroom.objects.get(id=classroom_id)
         classroom.name = classroom_name
         classroom.size = classroom_size
         classroom.img = classroom_img
         classroom.state = classroom_state
-        classroom.manager = manager
+        classroom.manager.id = manager.id
         classroom.save()
         result['success'] = True
     except Exception as e:
