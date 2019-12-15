@@ -23,6 +23,18 @@ class DateEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+# 判断预订时间是否冲突
+def detect_time_conflict(date, classroom, start_time, end_time):
+    tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                           start_time__lte=start_time, end_time__gt=start_time)
+    tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                           start_time__lt=end_time, end_time__gte=end_time)
+    if len(tmp1) != 0 or len(tmp2) != 0:
+        return False  # can't book
+    else:
+        return True  # can book
+
+
 # Create your views here.
 def index(request):
     return HttpResponse("Hello World !!!")
@@ -60,18 +72,20 @@ def user_logout(request):
 @csrf_exempt
 def get_classroom_info(request):
     result = {}
-    classroom_id = request.POST.get("id")
+    classroom_name = request.POST.get("name")
+    manager_name = request.POST.get("manager__username")
+    classroom_state = request.POST.get("state")
     try:
-        if classroom_id != "":
-            classroom_item = Classroom.objects.filter(id=classroom_id).values(
-                'id', 'name', 'size', 'img', 'manager__username', 'state'
-            )
-            result['num'] = 1
-            result['classroom_list'] = list(classroom_item)
+        if classroom_state == "":
+            classroom_list = Classroom.objects.\
+                filter(name__contains=classroom_name, manager__username__contains=manager_name).\
+                values('id', 'name', 'size', 'img', 'manager__username', 'state')
         else:
-            classroom_list = Classroom.objects.all().values()
-            result['num'] = len(classroom_list)
-            result['classroom_list'] = list(classroom_list)
+            classroom_list = Classroom.objects.\
+                filter(name__contains=classroom_name, state=classroom_state, manager__username__contains=manager_name).\
+                values('id', 'name', 'size', 'img', 'manager__username', 'state')
+        result['num'] = len(classroom_list)
+        result['classroom_list'] = list(classroom_list)
         result['success'] = True
     except Exception as e:
         result['success'] = False
@@ -134,20 +148,16 @@ def create_booking(request):
         current_user = request.user
 
         # 判断是否可以预订
-        tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                               start_time__lte=start_time, end_time__gt=start_time)
-        tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                               start_time__lt=end_time, end_time__gte=end_time)
-        if len(tmp1) != 0 or len(tmp2) != 0:
-            result['success'] = False
-            result['msg'] = "时间冲突，无法预订"
-        else:
+        if detect_time_conflict(date, classroom, start_time, end_time):
             booking = ClassroomBooking(date=datetime.datetime.strptime(date, '%Y-%m-%d'),
                                        start_time=datetime.datetime.strptime(start_time, '%H:%M:%S'),
                                        end_time=datetime.datetime.strptime(end_time, '%H:%M:%S'),
                                        state=0, classroom=classroom, user=current_user)
             booking.save()
             result['success'] = True
+        else:
+            result['success'] = False
+            result['msg'] = "时间冲突，无法预订"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -168,14 +178,18 @@ def modify_booking_by_id(request):
 
         booking = ClassroomBooking.objects.get(id=booking_id)
         classroom = Classroom.objects.get(name=classroom_name)
-        booking.date = datetime.datetime.strptime(date, '%Y-%m-%d')
-        booking.start_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
-        booking.end_time = datetime.datetime.strptime(end_time, '%H:%M:%S')
-        booking.classroom = classroom
-        booking.state = 0
-        booking.save()
 
-        result['success'] = True
+        if detect_time_conflict(date, classroom, start_time, end_time):
+            booking.date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            booking.start_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
+            booking.end_time = datetime.datetime.strptime(end_time, '%H:%M:%S')
+            booking.classroom = classroom
+            booking.state = 0
+            booking.save()
+            result['success'] = True
+        else:
+            result['success'] = False
+            result['msg'] = "时间冲突，无法修改预订"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -226,24 +240,26 @@ def get_booking_list(request):
     result = {}
     try:
         booking_list = ClassroomBooking.objects.values(
-            'id', 'classroom_id', 'date', 'start_time', 'end_time', 'state'
+            'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
         )
-        result['booking_list'] = list(booking_list)
+        content = list(booking_list)
+        result['booking_list'] = content
         result['num'] = len(booking_list)
+        result['success'] = True
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
 
 
-# 设置预定状态
+# 设置教室预定状态
 @csrf_exempt
 def set_booking_status(request):
     result = {}
     try:
         booking_ids = request.POST.get('id')
         booking_id_list = booking_ids.split(',')
-        booking_status = request.POST.get('status')
+        booking_status = request.POST.get('state')
         booking_status_list = booking_status.split(',')
         for i in range(min(len(booking_id_list), len(booking_status_list))):
             booking = ClassroomBooking.objects.get(id=booking_id_list[i])
@@ -261,20 +277,20 @@ def set_booking_status(request):
 def modify_classroom_by_id(request):
     result = {}
     try:
-        classroom_id = request.POST.get('classroom_id')
-        manager_id = request.POST.get('manager_id')
+        classroom_id = request.POST.get('id')
+        manager_name = request.POST.get('manager__username')
         classroom_name = request.POST.get('name')
         classroom_size = request.POST.get('size')
         classroom_img = request.POST.get('img')
         classroom_state = request.POST.get('state')
 
-        manager = UserInfo.objects.get(id=manager_id)
+        manager = UserInfo.objects.get(name=manager_name)
         classroom = Classroom.objects.get(id=classroom_id)
         classroom.name = classroom_name
         classroom.size = classroom_size
         classroom.img = classroom_img
         classroom.state = classroom_state
-        classroom.manager = manager
+        classroom.manager.id = manager.id
         classroom.save()
         result['success'] = True
     except Exception as e:
