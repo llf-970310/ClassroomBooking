@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-
+from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 
@@ -26,7 +26,6 @@ class DateEncoder(json.JSONEncoder):
 # Create your views here.
 def index(request):
     return HttpResponse("Hello World !!!")
-
 
 # 登录
 @csrf_exempt
@@ -277,6 +276,94 @@ def modify_classroom_by_id(request):
         classroom.state = classroom_state
         classroom.manager = manager
         classroom.save()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 注册
+@csrf_exempt
+def user_register(request):
+    result = {}
+    username = request.POST.get("username")
+    password = request.POST.get("password")
+    checkpwd = request.POST.get("checkpwd")
+    name = request.POST.get("name")
+    tel = request.POST.get("tel")
+    if password != checkpwd:
+        result['success'] = False
+        result['msg'] = '两次输入密码不一样'
+    elif len(tel) != 11:
+        result['success'] = False
+        result['msg'] = '输入的联系方式无效'
+    else:
+        if User.objects.filter(username=username).first():
+            result['success'] = False
+            result['msg'] = "该用户名已存在"
+        else:
+            User.objects.create_user(username=username, password=password)
+            user = UserInfo(name=name, tel=tel, user_type=1, user_id=request.user.id)
+            user.save()
+            result['success'] = True
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+
+# 修改密码
+@csrf_exempt
+@login_required
+def modify_password(request):
+    result = {}
+    try:
+        user = request.user
+        password = request.POST.get("password")
+        newpwd = request.POST.get("newpwd")
+        ret = user.check_password(password)
+        if ret:
+            user.set_password(newpwd)
+            user.save()
+            result['success'] = True
+        else:
+            result['success'] = False
+            result['msg'] = "原密码输入错误"
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+
+# 修改个人信息
+@csrf_exempt
+@login_required
+def modify_personal_info(request):
+    result = {}
+    try:
+        current_user = request.user
+        name = request.POST.get("name")
+        tel = request.POST.get("tel")
+        user = UserInfo.objects.get(user=current_user)
+        user.name = name
+        user.tel = tel
+        user.save()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result), content_type="application/json")
+
+
+# 查看本人历史预定情况
+@csrf_exempt
+@login_required
+def get_history_booking_list(request):
+    result = {}
+    try:
+        current_user = request.user
+        booking_list = ClassroomBooking.objects.filter(user_id=current_user.id, state=1).values(
+            'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
+        )
+        result['booking_list'] = list(booking_list)
         result['success'] = True
     except Exception as e:
         result['success'] = False
