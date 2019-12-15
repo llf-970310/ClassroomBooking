@@ -23,6 +23,18 @@ class DateEncoder(json.JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 
+# 判断预订时间是否冲突
+def detect_time_conflict(date, classroom, start_time, end_time):
+    tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                           start_time__lte=start_time, end_time__gt=start_time)
+    tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
+                                           start_time__lt=end_time, end_time__gte=end_time)
+    if len(tmp1) != 0 or len(tmp2) != 0:
+        return False  # can't book
+    else:
+        return True  # can book
+
+
 # Create your views here.
 def index(request):
     return HttpResponse("Hello World !!!")
@@ -137,20 +149,16 @@ def create_booking(request):
         current_user = request.user
 
         # 判断是否可以预订
-        tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                               start_time__lte=start_time, end_time__gt=start_time)
-        tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                               start_time__lt=end_time, end_time__gte=end_time)
-        if len(tmp1) != 0 or len(tmp2) != 0:
-            result['success'] = False
-            result['msg'] = "时间冲突，无法预订"
-        else:
+        if detect_time_conflict(date, classroom, start_time, end_time):
             booking = ClassroomBooking(date=datetime.datetime.strptime(date, '%Y-%m-%d'),
                                        start_time=datetime.datetime.strptime(start_time, '%H:%M:%S'),
                                        end_time=datetime.datetime.strptime(end_time, '%H:%M:%S'),
                                        state=0, classroom=classroom, user=current_user)
             booking.save()
             result['success'] = True
+        else:
+            result['success'] = False
+            result['msg'] = "时间冲突，无法预订"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -171,14 +179,18 @@ def modify_booking_by_id(request):
 
         booking = ClassroomBooking.objects.get(id=booking_id)
         classroom = Classroom.objects.get(name=classroom_name)
-        booking.date = datetime.datetime.strptime(date, '%Y-%m-%d')
-        booking.start_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
-        booking.end_time = datetime.datetime.strptime(end_time, '%H:%M:%S')
-        booking.classroom = classroom
-        booking.state = 0
-        booking.save()
 
-        result['success'] = True
+        if detect_time_conflict(date, classroom, start_time, end_time):
+            booking.date = datetime.datetime.strptime(date, '%Y-%m-%d')
+            booking.start_time = datetime.datetime.strptime(start_time, '%H:%M:%S')
+            booking.end_time = datetime.datetime.strptime(end_time, '%H:%M:%S')
+            booking.classroom = classroom
+            booking.state = 0
+            booking.save()
+            result['success'] = True
+        else:
+            result['success'] = False
+            result['msg'] = "时间冲突，无法修改预订"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
