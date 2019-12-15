@@ -61,18 +61,20 @@ def user_logout(request):
 @csrf_exempt
 def get_classroom_info(request):
     result = {}
-    classroom_id = request.POST.get("id")
+    classroom_name = request.POST.get("name")
+    manager_name = request.POST.get("manager__username")
+    classroom_state = request.POST.get("state")
     try:
-        if classroom_id != "":
-            classroom_item = Classroom.objects.filter(id=classroom_id).values(
-                'id', 'name', 'size', 'img', 'manager__username', 'state'
-            )
-            result['num'] = 1
-            result['classroom_list'] = list(classroom_item)
+        if classroom_state == "":
+            classroom_list = Classroom.objects.\
+                filter(name__contains=classroom_name, manager__username__contains=manager_name).\
+                values('id', 'name', 'size', 'img', 'manager__username', 'state')
         else:
-            classroom_list = Classroom.objects.all().values()
-            result['num'] = len(classroom_list)
-            result['classroom_list'] = list(classroom_list)
+            classroom_list = Classroom.objects.\
+                filter(name__contains=classroom_name, state=classroom_state, manager__username__contains=manager_name).\
+                values('id', 'name', 'size', 'img', 'manager__username', 'state')
+        result['num'] = len(classroom_list)
+        result['classroom_list'] = list(classroom_list)
         result['success'] = True
     except Exception as e:
         result['success'] = False
