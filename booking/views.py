@@ -271,6 +271,44 @@ def set_booking_status(request):
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
 
 
+# 增加教室
+@csrf_exempt
+def add_classroom(request):
+    result = {}
+    try:
+        manager_name = request.POST.get('manager__username')
+        classroom_name = request.POST.get('name')
+        classroom_size = request.POST.get('size')
+        classroom_img = request.POST.get('img')
+        classroom_state = request.POST.get('state')
+
+        manager = User.objects.get(username=manager_name)
+        classroom = Classroom(name=classroom_name, size=classroom_size, img=classroom_img, state=classroom_state,
+                              manager=manager)
+        classroom.save()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 删除教室
+@csrf_exempt
+def del_classroom_by_id(request):
+    result = {}
+    try:
+        classroom_ids = request.POST.get('id')
+        classroom_id_list = classroom_ids.split(',')
+        for classroom_id in classroom_id_list:
+            Classroom.objects.filter(id=classroom_id).delete()
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['msg'] = repr(e)
+    return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
 # 更改教室信息
 @csrf_exempt
 def modify_classroom_by_id(request):
@@ -283,13 +321,13 @@ def modify_classroom_by_id(request):
         classroom_img = request.POST.get('img')
         classroom_state = request.POST.get('state')
 
-        manager = UserInfo.objects.get(name=manager_name)
+        manager = User.objects.get(username=manager_name)
         classroom = Classroom.objects.get(id=classroom_id)
         classroom.name = classroom_name
         classroom.size = classroom_size
         classroom.img = classroom_img
         classroom.state = classroom_state
-        classroom.manager.id = manager.id
+        classroom.manager = manager
         classroom.save()
         result['success'] = True
     except Exception as e:
