@@ -239,7 +239,7 @@ def get_booking_list(request):
     result = {}
     try:
         booking_list = ClassroomBooking.objects.values(
-            'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
+            'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state', 'user__username'
         )
         content = list(booking_list)
         result['booking_list'] = content
