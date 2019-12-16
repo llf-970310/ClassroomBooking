@@ -25,9 +25,9 @@ class DateEncoder(json.JSONEncoder):
 # 判断预订时间是否冲突
 def detect_time_conflict(date, classroom, start_time, end_time):
     tmp1 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                           start_time__lte=start_time, end_time__gt=start_time)
+                                           start_time__lte=start_time, end_time__gt=start_time).exclude(state=2)
     tmp2 = ClassroomBooking.objects.filter(date=date, classroom=classroom,
-                                           start_time__lt=end_time, end_time__gte=end_time)
+                                           start_time__lt=end_time, end_time__gte=end_time).exclude(state=2)
     if len(tmp1) != 0 or len(tmp2) != 0:
         return False  # can't book
     else:
