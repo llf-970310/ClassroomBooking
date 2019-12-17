@@ -1,5 +1,8 @@
 import json
 import datetime
+import smtplib
+from email.header import Header
+from email.mime.text import MIMEText
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -8,6 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from .models import *
 from itertools import chain
+
 
 # 解决返回 json 中日期格式序列化的问题
 class DateEncoder(json.JSONEncoder):
@@ -34,9 +38,39 @@ def detect_time_conflict(date, classroom, start_time, end_time):
         return True  # can book
 
 
+def send_email(rec, words):
+    sender = 'lf97310@163.com'
+    password = '***REMOVED***'
+    if rec != "":
+        receiver = [rec, 'lf97310@163.com']
+    else:
+        print("收件人地址为空，邮件发送失败")
+        return False
+
+    try:
+        msg = MIMEText(words, 'plain', 'utf-8')  # 中文需参数‘utf-8'，单字节字符不需要
+        msg['Subject'] = Header('教室预定审核状态变动', 'utf-8')  # 邮件标题
+        msg['from'] = sender  # 发信人地址
+        msg['to'] = ','.join(receiver)  # 收信人地址
+
+        smtp = smtplib.SMTP_SSL('smtp.163.com', 465, timeout=120)
+        # smtp.connect('smtp-mail.outlook.com', 587)
+        smtp.ehlo()
+        # smtp.starttls()
+        smtp.login(sender, password)
+        smtp.sendmail(sender, receiver, msg.as_string())  # 这行代码解决的下方554的错误
+        smtp.quit()
+        print("==================邮件发送成功!==================")
+        return True
+    except Exception as e:
+        print(repr(e))
+        return False
+
+
 # Create your views here.
 def index(request):
     return HttpResponse("Hello World !!!")
+
 
 # 登录
 @csrf_exempt
@@ -260,10 +294,28 @@ def set_booking_status(request):
         booking_id_list = booking_ids.split(',')
         booking_status = request.POST.get('state')
         booking_status_list = booking_status.split(',')
+        mail_content = {}
         for i in range(min(len(booking_id_list), len(booking_status_list))):
             booking = ClassroomBooking.objects.get(id=booking_id_list[i])
             booking.state = int(booking_status_list[i])
             booking.save()
+
+            content = "您的预定：" + booking.date.strftime('%Y-%m-%d') + " " + booking.start_time.strftime('%H:%M:%S') \
+                      + " - " + booking.end_time.strftime('%H:%M:%S') + " " + booking.classroom.name
+            if int(booking_status_list[i]) == 1:
+                content += "    审核通过\n"
+            elif int(booking_status_list[i]) == 2:
+                content += "    审核拒绝\n"
+
+            if booking.user.email in mail_content:
+                mail_content[booking.user.email] += content
+            else:
+                mail_content[booking.user.email] = content
+
+        # 发送邮件
+        for key, value in mail_content.items():
+            send_email(key, value)
+
         result['success'] = True
     except Exception as e:
         result['success'] = False
