@@ -151,11 +151,14 @@ def get_classroom_booking(request):
 
 # 查看当前用户预订列表
 @csrf_exempt
-@login_required
+# @login_required
 def get_user_booking_list(request):
     result = {}
+    user_id = request.POST.get("userid")
+    if user_id is None or user_id == "":
+        user_id = request.user.id
     try:
-        booking_list = ClassroomBooking.objects.filter(user_id=request.user.id).values(
+        booking_list = ClassroomBooking.objects.filter(user_id=user_id).values(
             'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
         )
         result['booking_list'] = list(booking_list)
@@ -168,7 +171,7 @@ def get_user_booking_list(request):
 
 # 新增预订
 @csrf_exempt
-@login_required
+# @login_required
 def create_booking(request):
     result = {}
     try:
@@ -176,9 +179,13 @@ def create_booking(request):
         date = request.POST.get('date')
         start_time = request.POST.get('start_time')
         end_time = request.POST.get('end_time')
+        user_id = request.POST.get('userid')
 
         classroom = Classroom.objects.get(name=classroom_name)
-        current_user = request.user
+        if user_id is None or user_id == "":
+            current_user = request.user
+        else:
+            current_user = User.objects.get(id=user_id)
 
         # 判断是否可以预订
         if detect_time_conflict(date, classroom, start_time, end_time):
@@ -199,7 +206,7 @@ def create_booking(request):
 
 # 修改预订
 @csrf_exempt
-@login_required
+# @login_required
 def modify_booking_by_id(request):
     result = {}
     try:
@@ -231,7 +238,7 @@ def modify_booking_by_id(request):
 
 # 删除预订
 @csrf_exempt
-@login_required
+# @login_required
 def del_booking_by_id(request):
     result = {}
     try:
