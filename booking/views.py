@@ -248,15 +248,19 @@ def del_booking_by_id(request):
 
 # 修改管理员信息
 @csrf_exempt
-@login_required
+#@login_required
 def modify_admin_info_by_id(request):
     result = {}
     try:
         current_user = request.user
         new_name = request.POST.get('name')
         new_tel = request.POST.get('tel')
+        userid = request.POST.get('userid')
 
-        admin = UserInfo.objects.get(user=current_user)
+        if userid is None:
+            admin = UserInfo.objects.get(user=current_user)
+        else:
+            admin = UserInfo.objects.get(user_id=userid)
         admin.name = new_name
         admin.tel = new_tel
         admin.save()
