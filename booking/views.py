@@ -427,7 +427,7 @@ def user_register(request):
 
 # 修改密码
 @csrf_exempt
-@login_required
+# @login_required
 def modify_password(request):
     result = {}
     try:
@@ -450,12 +450,13 @@ def modify_password(request):
 
 # 查看个人信息
 @csrf_exempt
-@login_required
+# @login_required
 def get_personal_info(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
-        personal_info_list = UserInfo.objects.get(user_id=current_user.id)
+        personal_info_list = UserInfo.objects.get(user_id=user_id)
         user = User.objects.get(id=personal_info_list.user_id)
         result['id'] = personal_info_list.user_id
         result['name'] = personal_info_list.name
@@ -470,15 +471,16 @@ def get_personal_info(request):
 
 # 修改个人信息
 @csrf_exempt
-@login_required
+# @login_required
 def modify_personal_info(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
         name = request.POST.get("name")
         tel = request.POST.get("tel")
         email = request.POST.get("email")
-        userinfo = UserInfo.objects.get(user=current_user)
+        userinfo = UserInfo.objects.get(user_id=user_id)
         userinfo.name = name
         userinfo.tel = tel
         userinfo.save()
@@ -494,12 +496,13 @@ def modify_personal_info(request):
 
 # 查看本人历史预定情况
 @csrf_exempt
-@login_required
+# @login_required
 def get_history_booking_list(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
-        booking_list = ClassroomBooking.objects.filter(user_id=current_user.id, state=1).values(
+        booking_list = ClassroomBooking.objects.filter(user_id=user_id, state=1).values(
             'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
         )
         result['booking_list'] = list(booking_list)
