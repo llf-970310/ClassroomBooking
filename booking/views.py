@@ -454,8 +454,9 @@ def modify_password(request):
 def get_personal_info(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
-        personal_info_list = UserInfo.objects.get(user_id=current_user.id)
+        personal_info_list = UserInfo.objects.get(user_id=user_id)
         user = User.objects.get(id=personal_info_list.user_id)
         result['id'] = personal_info_list.user_id
         result['name'] = personal_info_list.name
@@ -474,11 +475,12 @@ def get_personal_info(request):
 def modify_personal_info(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
         name = request.POST.get("name")
         tel = request.POST.get("tel")
         email = request.POST.get("email")
-        userinfo = UserInfo.objects.get(user=current_user)
+        userinfo = UserInfo.objects.get(user_id=user_id)
         userinfo.name = name
         userinfo.tel = tel
         userinfo.save()
@@ -498,8 +500,9 @@ def modify_personal_info(request):
 def get_history_booking_list(request):
     result = {}
     try:
+        user_id = request.POST.get("user_id")
         current_user = request.user
-        booking_list = ClassroomBooking.objects.filter(user_id=current_user.id, state=1).values(
+        booking_list = ClassroomBooking.objects.filter(user_id=user_id, state=1).values(
             'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state'
         )
         result['booking_list'] = list(booking_list)
