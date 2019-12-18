@@ -126,3 +126,17 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.AllowAllUsersModelBackend']
+
+
+# 发送邮件设置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# SMTP地址
+EMAIL_HOST = 'smtp.163.com'
+# SMTP端口
+EMAIL_PORT = 25
+# 自己的邮箱
+EMAIL_HOST_USER = 'lf97310'
+# 自己的邮箱授权码，非密码
+EMAIL_HOST_PASSWORD = '***REMOVED***'
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'lf97310@163.com'
