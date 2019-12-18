@@ -55,8 +55,10 @@ def user_login(request):
         login(request, user)
         result['success'] = True
         result['user_type'] = UserInfo.objects.get(user_id=user.id).user_type
+        result['user_id'] = user.id
     else:
         result['success'] = False
+        result['msg'] = "用户名或密码错误"
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 
@@ -92,6 +94,9 @@ def get_classroom_info(request):
         result['num'] = len(classroom_list)
         result['classroom_list'] = list(classroom_list)
         result['success'] = True
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -170,6 +175,12 @@ def create_booking(request):
         else:
             result['success'] = False
             result['msg'] = "时间冲突，无法预订"
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
+    except Classroom.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "教室名有误，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -202,6 +213,15 @@ def modify_booking_by_id(request):
         else:
             result['success'] = False
             result['msg'] = "时间冲突，无法修改预订"
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
+    except ClassroomBooking.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "订单号有误，请重试"
+    except Classroom.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "教室名有误，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -219,6 +239,9 @@ def del_booking_by_id(request):
         for booking_id in booking_id_list:
             ClassroomBooking.objects.filter(id=booking_id).delete()
         result['success'] = True
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数有误，请检查后重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
