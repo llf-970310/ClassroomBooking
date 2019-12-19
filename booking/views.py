@@ -432,7 +432,9 @@ def user_register(request):
 def modify_password(request):
     result = {}
     try:
-        user = request.user
+        # user = request.user
+        user_id = request.POST.get("user_id")
+        user = User.objects.get(id=user_id)
         password = request.POST.get("password")
         newpwd = request.POST.get("newpwd")
         ret = user.check_password(password)
