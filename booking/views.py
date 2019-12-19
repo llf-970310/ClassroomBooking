@@ -277,10 +277,23 @@ def modify_admin_info_by_id(request):
 @csrf_exempt
 def get_booking_list(request):
     result = {}
+
+    booked_user = request.POST.get('booked_user')
+    if booked_user is None:
+        booked_user = ''
+    start_date = request.POST.get('start_date')
+    if start_date is None:
+        start_date = '1970-1-1'
+    end_date = request.POST.get('end_date')
+    if end_date is None:
+        end_date = '2199-1-1'
+    booking_state = request.POST.get('state')
+    if booking_state is None:
+        booking_state = list(range(10))
     try:
         booking_list = ClassroomBooking.objects.values(
             'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state', 'user__username'
-        )
+        ).filter(user__username__contains=booked_user, date__gte=start_date, date__lt=end_date, state__in=booking_state)
         content = list(booking_list)
         result['booking_list'] = content
         result['num'] = len(booking_list)
