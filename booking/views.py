@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from .models import *
 from itertools import chain
+from celery_tasks.tasks import send_mail_task
 
 
 # 解决返回 json 中日期格式序列化的问题
@@ -333,13 +334,17 @@ def set_booking_status(request):
 
         # 发送邮件
         for key, value in mail_content.items():
-            send_mail(
-                '教室预定审核状态变动',
-                value,
-                'lf97310@163.com',
-                [key, 'lf97310@163.com'],
-                fail_silently=False,
-            )
+            if '@' in key:
+                # send_mail(
+                #     '教室预定审核状态变动',
+                #     value,
+                #     'lf97310@163.com',
+                #     [key, 'lf97310@163.com'],
+                #     fail_silently=False,
+                # )
+                send_mail_task.delay(value, key)
+            else:
+                print(key + " 邮箱地址错误")
 
         result['success'] = True
     except Exception as e:
