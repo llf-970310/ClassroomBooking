@@ -442,7 +442,7 @@ def user_register(request):
         else:
             user = User.objects.create_user(username=username, password=password, email=email)
             user.save()
-            userinfo = UserInfo(user=user, name=name, tel=tel, user_type=1)
+            userinfo = UserInfo(user=user, name=name, tel=tel, user_type=2)
             userinfo.save()
             result['success'] = True
     return HttpResponse(json.dumps(result), content_type="application/json")
