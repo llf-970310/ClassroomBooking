@@ -1,6 +1,7 @@
 import json
 import datetime
 import smtplib
+import threading
 from email.header import Header
 from email.mime.text import MIMEText
 
@@ -331,21 +332,29 @@ def set_booking_status(request):
             else:
                 mail_content[booking.user.email] = content
 
-        # 发送邮件
-        for key, value in mail_content.items():
-            send_mail(
-                '教室预定审核状态变动',
-                value,
-                'lf97310@163.com',
-                [key, 'lf97310@163.com'],
-                fail_silently=False,
-            )
+        thread_email = threading.Thread(target=send_email, args=(mail_content, result))
+        thread_email.start()
+        result['mail_send'] = False
+        thread_email.join(2)
 
         result['success'] = True
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
     return HttpResponse(json.dumps(result, cls=DateEncoder), content_type="application/json")
+
+
+# 发送邮件
+def send_email(content, result):
+    for key, value in content.items():
+        send_mail(
+            '教室预定审核状态变动',
+            value,
+            'lf97310@163.com',
+            [key, 'lf97310@163.com'],
+            fail_silently=False,
+        )
+    result['mail_send'] = True
 
 
 # 增加教室
