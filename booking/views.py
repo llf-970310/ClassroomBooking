@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import send_mail
 from .models import *
 from itertools import chain
 
@@ -38,35 +39,6 @@ def detect_time_conflict(date, classroom, start_time, end_time):
         return True  # can book
 
 
-def send_email(rec, words):
-    sender = 'lf97310@163.com'
-    password = '***REMOVED***'
-    if rec != "":
-        receiver = [rec, 'lf97310@163.com']
-    else:
-        print("收件人地址为空，邮件发送失败")
-        return False
-
-    try:
-        msg = MIMEText(words, 'plain', 'utf-8')  # 中文需参数‘utf-8'，单字节字符不需要
-        msg['Subject'] = Header('教室预定审核状态变动', 'utf-8')  # 邮件标题
-        msg['from'] = sender  # 发信人地址
-        msg['to'] = ','.join(receiver)  # 收信人地址
-
-        smtp = smtplib.SMTP_SSL('smtp.163.com', 465, timeout=120)
-        # smtp.connect('smtp-mail.outlook.com', 587)
-        smtp.ehlo()
-        # smtp.starttls()
-        smtp.login(sender, password)
-        smtp.sendmail(sender, receiver, msg.as_string())  # 这行代码解决的下方554的错误
-        smtp.quit()
-        print("==================邮件发送成功!==================")
-        return True
-    except Exception as e:
-        print(repr(e))
-        return False
-
-
 # Create your views here.
 def index(request):
     return HttpResponse("Hello World !!!")
@@ -83,8 +55,10 @@ def user_login(request):
         login(request, user)
         result['success'] = True
         result['user_type'] = UserInfo.objects.get(user_id=user.id).user_type
+        result['user_id'] = user.id
     else:
         result['success'] = False
+        result['msg'] = "用户名或密码错误"
     return HttpResponse(json.dumps(result), content_type="application/json")
 
 
@@ -120,6 +94,9 @@ def get_classroom_info(request):
         result['num'] = len(classroom_list)
         result['classroom_list'] = list(classroom_list)
         result['success'] = True
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -198,6 +175,12 @@ def create_booking(request):
         else:
             result['success'] = False
             result['msg'] = "时间冲突，无法预订"
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
+    except Classroom.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "教室名有误，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -230,6 +213,15 @@ def modify_booking_by_id(request):
         else:
             result['success'] = False
             result['msg'] = "时间冲突，无法修改预订"
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数存在无效数据，请重试"
+    except ClassroomBooking.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "订单号有误，请重试"
+    except Classroom.DoesNotExist:
+        result['success'] = False
+        result['msg'] = "教室名有误，请重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -247,6 +239,9 @@ def del_booking_by_id(request):
         for booking_id in booking_id_list:
             ClassroomBooking.objects.filter(id=booking_id).delete()
         result['success'] = True
+    except ValueError:
+        result['success'] = False
+        result['msg'] = "参数有误，请检查后重试"
     except Exception as e:
         result['success'] = False
         result['msg'] = repr(e)
@@ -282,10 +277,23 @@ def modify_admin_info_by_id(request):
 @csrf_exempt
 def get_booking_list(request):
     result = {}
+
+    booked_user = request.POST.get('booked_user')
+    if booked_user is None:
+        booked_user = ''
+    start_date = request.POST.get('start_date')
+    if start_date is None or start_date == '':
+        start_date = '1970-1-1'
+    end_date = request.POST.get('end_date')
+    if end_date is None or end_date == '':
+        end_date = '2199-1-1'
+    booking_state = request.POST.get('state')
+    if booking_state is None or booking_state == '':
+        booking_state = list(range(10))
     try:
         booking_list = ClassroomBooking.objects.values(
             'id', 'classroom__name', 'date', 'start_time', 'end_time', 'state', 'user__username'
-        )
+        ).filter(user__username__contains=booked_user, date__gte=start_date, date__lt=end_date, state__in=booking_state)
         content = list(booking_list)
         result['booking_list'] = content
         result['num'] = len(booking_list)
@@ -325,7 +333,13 @@ def set_booking_status(request):
 
         # 发送邮件
         for key, value in mail_content.items():
-            send_email(key, value)
+            send_mail(
+                '教室预定审核状态变动',
+                value,
+                'lf97310@163.com',
+                [key, 'lf97310@163.com'],
+                fail_silently=False,
+            )
 
         result['success'] = True
     except Exception as e:
@@ -427,11 +441,13 @@ def user_register(request):
 
 # 修改密码
 @csrf_exempt
-@login_required
+# @login_required
 def modify_password(request):
     result = {}
     try:
-        user = request.user
+        # user = request.user
+        user_id = request.POST.get("user_id")
+        user = User.objects.get(id=user_id)
         password = request.POST.get("password")
         newpwd = request.POST.get("newpwd")
         ret = user.check_password(password)
@@ -450,7 +466,7 @@ def modify_password(request):
 
 # 查看个人信息
 @csrf_exempt
-@login_required
+# @login_required
 def get_personal_info(request):
     result = {}
     try:
@@ -471,7 +487,7 @@ def get_personal_info(request):
 
 # 修改个人信息
 @csrf_exempt
-@login_required
+# @login_required
 def modify_personal_info(request):
     result = {}
     try:
@@ -496,7 +512,7 @@ def modify_personal_info(request):
 
 # 查看本人历史预定情况
 @csrf_exempt
-@login_required
+# @login_required
 def get_history_booking_list(request):
     result = {}
     try:
