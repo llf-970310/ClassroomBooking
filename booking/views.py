@@ -38,7 +38,9 @@ def detect_time_conflict(date, classroom, start_time, end_time):
 
 # Create your views here.
 def index(request):
-    return HttpResponse("Hello World !!!")
+    with open("./static/user/sign.html") as f:
+        html = f.read()
+    return HttpResponse(html)
 
 
 # 登录
