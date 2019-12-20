@@ -1,8 +1,5 @@
 import json
 import datetime
-import smtplib
-from email.header import Header
-from email.mime.text import MIMEText
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -11,7 +8,6 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from .models import *
-from itertools import chain
 from celery_tasks.tasks import send_mail_task
 
 
@@ -345,7 +341,7 @@ def set_booking_status(request):
                 send_mail_task.delay(value, key)
             else:
                 print(key + " 邮箱地址错误")
-
+        
         result['success'] = True
     except Exception as e:
         result['success'] = False
