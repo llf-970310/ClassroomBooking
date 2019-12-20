@@ -282,13 +282,13 @@ def get_booking_list(request):
     if booked_user is None:
         booked_user = ''
     start_date = request.POST.get('start_date')
-    if start_date is None:
+    if start_date is None or start_date == '':
         start_date = '1970-1-1'
     end_date = request.POST.get('end_date')
-    if end_date is None:
+    if end_date is None or end_date == '':
         end_date = '2199-1-1'
     booking_state = request.POST.get('state')
-    if booking_state is None:
+    if booking_state is None or booking_state == '':
         booking_state = list(range(10))
     try:
         booking_list = ClassroomBooking.objects.values(
